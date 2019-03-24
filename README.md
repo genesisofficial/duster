@@ -12,11 +12,11 @@ A "duster" simply pulls your transactions together and creates them into fewer t
 
 ### Usage
 #### Pre-Requisites
-* Genesis Full-Node wallet & daemon installed on a Linux box or VM with wallet.dat attached to the address you want to collect dust from
+* Genesis v3 daemon installed on a Linux box or VM with wallet.dat attached to the address you want to collect dust from. This can come from your local QT wallet or CLI
 * NPM Installed ```sudo apt-get install -y npm```
 #### Steps
 1) Clone or download this repo ```git clone https://github.com/genesisofficial/duster.git```
-2) Extract the archive on a machine that has daemon & QT installed
+2) Extract the archive on a machine that has daemoninstalled
 3) Open a new terminal and go to the duster folder - Example ```cd ~/duster```
 4) Run the following in the terminal separately
 ```
@@ -24,11 +24,22 @@ npm update
 npm install
 ```
 5) Go to duster folder and edit the following
-* index.js, add the address for which you are running the dust collector 
-* in the file duster.js, line 112 insert the private key for the address 
-6) Open a new terminal window and start the daemon with something like the following, to match the configuration in the duster/config/default.json file
+* index.js, add the address for which you are running the dust collector - retrieve from QT wallet or CLI
+* in the file duster.js, line 112 insert the private key for the address - retrive from QT wallet or CLI
+6) Go to directory where daemon is located (or if built and installed, just run from root dir) and start the daemon with something like the following, to match the configuration in the duster/config/default.json file
 ```
-./genesisd -datadir=/path/to/.genesis/ -rpcuser=rpcuser -rpcpassword=rpcpass rpcport=56504 -rpcallowip=127.0.0.1 -server -listen -rpcworkqueue=1024
+./genesisd -datadir=/path/to/.genesis/ -daemon=1 -rpcuser=rpcuser -rpcpassword=rpcpass -rpcport=56504 -rpcallowip=127.0.0.1 -server=1 -listen=1 -rpcworkqueue=1024
+```
+**Alternatively**: Create a genesis.conf file in the .genesis folder and run ```./genesisd``` or ```genesisd``` (if installed):
+```
+rpcuser=rpcuser
+rpcpassword=rpcpass
+rpcport=56504
+rpcallowip=127.0.0.1
+daemon=1
+server=1
+listen=1
+rpcworkqueue=1024
 ```
 * **Optional**: Run tail to view the logs of the daemon (in new terminal window)
 ```
