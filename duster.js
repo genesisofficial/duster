@@ -13,8 +13,7 @@ let Regex = require("regex"),
 let walletConfig = config.get("genx").config;
 const baseWallet = new bitcoin.Client(walletConfig);
 
-function DustCollector(sourceAddress) {
-  this.sourceAddress = sourceAddress;
+function Duster() {
 }
 
 var sortByAmount = function(state) {
@@ -112,7 +111,7 @@ var createBatchTransaction = function(batchState) {
           console.log(batchState.payment);
           reject(Error(err));
         } else {
-          let rawSignPrivKeys = ["INSERT PRIVATE KEY HERE"];
+          let rawSignPrivKeys = batchState.privateKeys;
           batchState.baseWallet.signRawTransaction(
             rawtx,
             batchState.rawItems,
@@ -143,8 +142,9 @@ var createBatchTransaction = function(batchState) {
   });
 };
 
-DustCollector.prototype.doWork = function(
+Duster.prototype.doWork = function(
   sourceAddress,
+  privateKeys,
   batchSize,
   maximumInputAmount,
   minimumConfirmations,
@@ -160,6 +160,7 @@ DustCollector.prototype.doWork = function(
         txList: unspent,
         batchSize: batchSize,
         sourceAddress: sourceAddress,
+        privateKeys: privateKeys,
         maximumInputAmount: maximumInputAmount,
         minimumConfirmations: minimumConfirmations,
         batchTxFee: batchTxFee
@@ -172,6 +173,7 @@ DustCollector.prototype.doWork = function(
           inputBatches.forEach(batch => {
             var batchState = {
               sourceAddress: batchedState.sourceAddress,
+              privateKeys: batchedState.privateKeys,
               batchTxFee: batchedState.batchTxFee,
               batchValue: 0,
               candidates: [],
@@ -196,4 +198,4 @@ DustCollector.prototype.doWork = function(
   return worked;
 };
 
-exports.DustCollector = DustCollector;
+exports.Duster = Duster;
