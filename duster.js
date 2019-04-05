@@ -143,9 +143,10 @@ var createBatchTransaction = function(batchState) {
 };
 
 // -------------------------- Exported Functions ---------------------------------------------
-Duster.prototype.ProcessWalletRun = function(currentRun) {
+Duster.prototype.ProcessWalletRun = function(currentRunState) {
   return new Promise(function(resolve, reject) {
     // For now, only process the first wallet... untill I figure out concurrency
+    var currentRun = currentRunState.runconfig;
     if (currentRun.active) {
       // Dumb, but needed
       var that = this;
