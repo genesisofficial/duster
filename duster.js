@@ -144,21 +144,24 @@ var createBatchTransaction = function(batchState) {
 
 // -------------------------- Exported Functions ---------------------------------------------
 Duster.prototype.ProcessWalletRun = function(currentRunState) {
+  // Dumb, but needed
+  var that = this;
   return new Promise(function(resolve, reject) {
     // For now, only process the first wallet... untill I figure out concurrency
     var currentRun = currentRunState.runconfig;
     if (currentRun.active) {
       var runConfig = currentRun.config;
-      // Dumb, but needed
-      var that = this;
-      that.baseWallet.listUnspent(runConfig.minimum_confirmations, function(err, unspent) {
+      that.baseWallet.listUnspent(runConfig.minimum_confirmations, function(
+        err,
+        unspent
+      ) {
         if (err) {
           reject(err);
         } else {
           console.log("Total Inputs: " + unspent.length);
           var state = {
             txList: unspent,
-            batchSize: minimum_confirmations,
+            batchSize: runConfig.batch_size,
             sourceAddress: runConfig.address,
             privateKeys: runConfig.private_keys,
             maximumInputAmount: runConfig.maximum_input_amount,
@@ -166,7 +169,7 @@ Duster.prototype.ProcessWalletRun = function(currentRunState) {
             batchTxFee: runConfig.batch_tx_fee
           };
 
-          that.sortByAmount(state)
+          sortByAmount(state)
             .then(makeBatches)
             .then(function(batchedState) {
               var inputBatches = batchedState.inputBatches;
@@ -182,8 +185,8 @@ Duster.prototype.ProcessWalletRun = function(currentRunState) {
                   items: batch,
                   baseWallet: that.baseWallet
                 };
-                batchState.payment[sourceAddress] = 0;
-                that.consolidateBatch(batchState)
+                batchState.payment[batchState.sourceAddress] = 0;
+                consolidateBatch(batchState)
                   .then(createBatchTransaction)
                   .then(function(results) {
                     resolve(results);
