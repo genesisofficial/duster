@@ -1,0 +1,28 @@
+{
+  "wallets": [
+    {
+      "name": "genx",
+      "active": true,
+      "config": {
+        "port": 7234,
+        "user": "rpcuser",
+        "pass": "rpcpass",
+        "timeout": 300000
+      },
+      "runconfigs": [
+        {
+          "name": "default",
+          "active": true,
+          "config": {
+            "address": "",
+            "private_keys": [""],
+            "batch_size": 300,
+            "maximum_input_amount": 10000,
+            "minimum_confirmations": 20,
+            "batch_tx_fee": 0.001
+          }
+        }
+      ]
+    }
+  ]
+}

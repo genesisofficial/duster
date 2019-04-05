@@ -1,58 +1,56 @@
-'use strict';
+// Copyright (c) 2018-2019 The Genesis Network Developers
+// Distributed under the MIT/X11 software license, see the accompanying
+// file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-const bitcoin = require('bitcoin');
-const bitcoinJs = require('bitcoinjs-lib');
+"use strict";
 
-let Regex = require('regex'),
-  config = require('config');
+// Import some functionality
+const bitcoin = require("bitcoin");
+let Regex = require("regex");
 
-let walletConfig = config.get('genx').config;
-const baseWallet = new bitcoin.Client(walletConfig);
+// Constructor to get things set up
+function Duster(currentWalletConfig) {
+  this.currentWalletConfig = currentWalletConfig;
+  this.baseWallet = new bitcoin.Client(this.currentWalletConfig);
+}
 
-
-function DustCollector (sourceAddress) {
-  this.sourceAddress = sourceAddress;
-};
+// -------------------------- Helpers --------------------------------------------------------
 
 var sortByAmount = function(state) {
   return new Promise(function(resolve, reject) {
     // Custom compare by amount
-    function compare(a,b) {
-      if (a.amount < b.amount)
-        return -1;
-      if (a.amount > b.amount)
-        return 1;
+    function compare(a, b) {
+      if (a.amount < b.amount) return -1;
+      if (a.amount > b.amount) return 1;
       return 0;
     }
     // sort the values from smallest to largest
     state.txList.sort(compare);
-    
-    if ( state.txList ) {
+
+    if (state.txList) {
       resolve(state);
     } else {
       reject(Error("Unable to sort"));
     }
   });
-}
+};
 
 var makeBatches = function(state) {
   return new Promise(function(resolve, reject) {
-    
     state.inputBatches = [];
     state.inputBatches[0] = [];
-    var elementCounter = 0
+    var elementCounter = 0;
     var batchTracker = 0;
-    
+
     for (let index = 0; index < state.txList.length; index++) {
       const element = state.txList[index];
 
       if (
-        element.address === state.sourceAddress && 
-        element.amount < state.maximumInputAmount && 
-        element.confirmations > state.minimumConfirmations)
-      {
-        if (elementCounter == state.batchSize)
-        {
+        element.address === state.sourceAddress &&
+        element.amount < state.maximumInputAmount &&
+        element.confirmations > state.minimumConfirmations
+      ) {
+        if (elementCounter == state.batchSize) {
           // Init the next batch
           elementCounter = 0;
           batchTracker++;
@@ -63,118 +61,149 @@ var makeBatches = function(state) {
         elementCounter++;
       }
     }
-    
-    if ( state.inputBatches ) {
+
+    if (state.inputBatches) {
       resolve(state);
     } else {
       reject(Error("Unable to create batches"));
     }
   });
-}
+};
 
 var consolidateBatch = function(batchState) {
   return new Promise(function(resolve, reject) {
     batchState.items.forEach(inputTx => {
       batchState.batchValue += inputTx.amount;
       batchState.candidates.push({
-        "txid" : inputTx.txid,
-        "vout": inputTx.vout
+        txid: inputTx.txid,
+        vout: inputTx.vout
       });
       batchState.rawItems.push({
-        "txid" : inputTx.txid,
-        "vout": inputTx.vout,
-        "scriptPubKey": inputTx.scriptPubKey,
-	      "redeemScript": inputTx.redeemScript,
-        "amount": inputTx.amount,
-      });  
+        txid: inputTx.txid,
+        vout: inputTx.vout,
+        scriptPubKey: inputTx.scriptPubKey,
+        redeemScript: inputTx.redeemScript,
+        amount: inputTx.amount
+      });
     });
-    let payoutAmount = Math.round((batchState.batchValue - batchState.batchTxFee) * 1000) / 1000;
+    let payoutAmount =
+      Math.round((batchState.batchValue - batchState.batchTxFee) * 1000) / 1000;
     // console.log(payoutAmount + '/' + batchState.batchValue + '/' + batchState.batchTxFee);
-    batchState.payment[batchState.sourceAddress] = payoutAmount; 
+    batchState.payment[batchState.sourceAddress] = payoutAmount;
 
-    if ( batchState ) {
+    if (batchState) {
       resolve(batchState);
     } else {
       reject(Error("Unable to sort"));
     }
   });
-}
+};
 
 var createBatchTransaction = function(batchState) {
   return new Promise(function(resolve, reject) {
-
-    batchState.baseWallet.createRawTransaction(batchState.candidates, batchState.payment, 0, function(err, rawtx) {
-      if (err) {
-        console.log(batchState.candidates);
-        console.log(batchState.payment);
-        reject(Error(err));
-      } else {
-        let rawSignPrivKeys = ["INSERT PRIVATE KEY HERE"];
-        batchState.baseWallet.signRawTransaction(rawtx, batchState.rawItems, rawSignPrivKeys, function(signErr, rawSignResult) {
-          if (signErr) {
-            console.log(batchState.rawItems[0]);
-            reject(Error(signErr));
-          } else {
-            //resolve(rawSignResult.complete);
-            //resolve(rawSignResult.hex);
-            batchState.baseWallet.sendRawTransaction(rawSignResult.hex, function(submitErr, submitResult) {
-              if (submitErr) {
-                reject(Error(submitErr));
+    batchState.baseWallet.createRawTransaction(
+      batchState.candidates,
+      batchState.payment,
+      0,
+      function(err, rawtx) {
+        if (err) {
+          console.log(batchState.candidates);
+          console.log(batchState.payment);
+          reject(Error(err));
+        } else {
+          let rawSignPrivKeys = batchState.privateKeys;
+          batchState.baseWallet.signRawTransaction(
+            rawtx,
+            batchState.rawItems,
+            rawSignPrivKeys,
+            function(signErr, rawSignResult) {
+              if (signErr) {
+                console.log(batchState.rawItems[0]);
+                reject(Error(signErr));
               } else {
-                resolve(submitResult);
+                //resolve(rawSignResult.complete);
+                //resolve(rawSignResult.hex);
+                batchState.baseWallet.sendRawTransaction(
+                  rawSignResult.hex,
+                  function(submitErr, submitResult) {
+                    if (submitErr) {
+                      reject(Error(submitErr));
+                    } else {
+                      resolve(submitResult);
+                    }
+                  }
+                );
               }
-            });
-          }
-        });
+            }
+          );
+        }
       }
-    });
+    );
   });
-}
-
-DustCollector.prototype.doWork = function (sourceAddress, batchSize, maximumInputAmount, minimumConfirmations, batchTxFee)
-{
-  let worked = false;
-  baseWallet.listUnspent(minimumConfirmations, function(err, unspent) {
-    if (err) {
-      console.log('listUnspent failed: ' + err);
-    } else 
-    {
-      console.log('Total Inputs: ' + unspent.length);
-      var state = {
-        "txList" : unspent,
-        "batchSize" : batchSize,
-        "sourceAddress" : sourceAddress,
-        "maximumInputAmount" : maximumInputAmount,
-        "minimumConfirmations" : minimumConfirmations,
-        "batchTxFee": batchTxFee
-      };
-
-      sortByAmount(state).then(makeBatches).then(function (batchedState){
-        var inputBatches = batchedState.inputBatches;
-        inputBatches.forEach(batch => {
-          var batchState = {
-            "sourceAddress": batchedState.sourceAddress,
-            "batchTxFee": batchedState.batchTxFee,
-            "batchValue": 0,
-            "candidates": [],
-            "rawItems": [],
-            "payment": {},
-            "items": batch,
-            "baseWallet": baseWallet
-          };
-          batchState.payment[sourceAddress] = 0; 
-          consolidateBatch(batchState).then(createBatchTransaction).then(function(results){
-            console.log(results);
-          }).catch(function(rejection){
-            console.log(rejection);
-          });
-        });
-      });
-    }
-  });
-  return worked;
 };
 
+// -------------------------- Exported Functions ---------------------------------------------
+Duster.prototype.ProcessWalletRun = function(currentRunState) {
+  // Dumb, but needed
+  var that = this;
+  return new Promise(function(resolve, reject) {
+    // For now, only process the first wallet... untill I figure out concurrency
+    var currentRun = currentRunState.runconfig;
+    if (currentRun.active) {
+      var runConfig = currentRun.config;
+      that.baseWallet.listUnspent(runConfig.minimum_confirmations, function(
+        err,
+        unspent
+      ) {
+        if (err) {
+          reject(err);
+        } else {
+          console.log("Total Inputs: " + unspent.length);
+          var state = {
+            txList: unspent,
+            batchSize: runConfig.batch_size,
+            sourceAddress: runConfig.address,
+            privateKeys: runConfig.private_keys,
+            maximumInputAmount: runConfig.maximum_input_amount,
+            minimumConfirmations: runConfig.minimum_confirmations,
+            batchTxFee: runConfig.batch_tx_fee
+          };
 
+          sortByAmount(state)
+            .then(makeBatches)
+            .then(function(batchedState) {
+              var inputBatches = batchedState.inputBatches;
+              inputBatches.forEach(batch => {
+                var batchState = {
+                  sourceAddress: batchedState.sourceAddress,
+                  privateKeys: batchedState.privateKeys,
+                  batchTxFee: batchedState.batchTxFee,
+                  batchValue: 0,
+                  candidates: [],
+                  rawItems: [],
+                  payment: {},
+                  items: batch,
+                  baseWallet: that.baseWallet
+                };
+                batchState.payment[batchState.sourceAddress] = 0;
+                consolidateBatch(batchState)
+                  .then(createBatchTransaction)
+                  .then(function(results) {
+                    resolve(results);
+                  })
+                  .catch(function(rejection) {
+                    reject(rejection);
+                  });
+              });
+            });
+        }
+      });
+    } else {
+      // Being inactive is not an error...
+      resolve("Run configuration is inactive");
+    }
+  });
+};
 
-exports.DustCollector = DustCollector;
+// -------------------------- Exports --------------------------------------------------------
+exports.Duster = Duster;
