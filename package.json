@@ -6,8 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Louwtjie (Loki) Taljaard a.k.a. HasToBeWild",
+  "license": "MIT",
   "dependencies": {
     "bitcoin": "^3.0.1",
     "config": "^1.27.0",
