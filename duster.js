@@ -4,17 +4,17 @@
 
 "use strict";
 
+// Import some functionality
 const bitcoin = require("bitcoin");
-const bitcoinJs = require("bitcoinjs-lib");
+let Regex = require("regex");
 
-let Regex = require("regex"),
-  config = require("config");
-
-let walletConfig = config.get("genx").config;
-const baseWallet = new bitcoin.Client(walletConfig);
-
-function Duster() {
+// Constructor to get things set up
+function Duster(currentWalletConfig) {
+  this.currentWalletConfig = currentWalletConfig;
+  this.baseWallet = new bitcoin.Client(this.currentWalletConfig);
 }
+
+// -------------------------- Helpers --------------------------------------------------------
 
 var sortByAmount = function(state) {
   return new Promise(function(resolve, reject) {
@@ -142,60 +142,63 @@ var createBatchTransaction = function(batchState) {
   });
 };
 
-Duster.prototype.doWork = function(
-  sourceAddress,
-  privateKeys,
-  batchSize,
-  maximumInputAmount,
-  minimumConfirmations,
-  batchTxFee
-) {
-  let worked = false;
-  baseWallet.listUnspent(minimumConfirmations, function(err, unspent) {
-    if (err) {
-      console.log("listUnspent failed: " + err);
-    } else {
-      console.log("Total Inputs: " + unspent.length);
-      var state = {
-        txList: unspent,
-        batchSize: batchSize,
-        sourceAddress: sourceAddress,
-        privateKeys: privateKeys,
-        maximumInputAmount: maximumInputAmount,
-        minimumConfirmations: minimumConfirmations,
-        batchTxFee: batchTxFee
-      };
+// -------------------------- Exported Functions ---------------------------------------------
+Duster.prototype.ProcessWalletRun = function(currentRun) {
+  return new Promise(function(resolve, reject) {
+    // For now, only process the first wallet... untill I figure out concurrency
+    if (currentRun.active) {
+      // Dumb, but needed
+      var that = this;
+      that.baseWallet.listUnspent(minimumConfirmations, function(err, unspent) {
+        if (err) {
+          reject(err);
+        } else {
+          console.log("Total Inputs: " + unspent.length);
+          var state = {
+            txList: unspent,
+            batchSize: batchSize,
+            sourceAddress: sourceAddress,
+            privateKeys: privateKeys,
+            maximumInputAmount: maximumInputAmount,
+            minimumConfirmations: minimumConfirmations,
+            batchTxFee: batchTxFee
+          };
 
-      sortByAmount(state)
-        .then(makeBatches)
-        .then(function(batchedState) {
-          var inputBatches = batchedState.inputBatches;
-          inputBatches.forEach(batch => {
-            var batchState = {
-              sourceAddress: batchedState.sourceAddress,
-              privateKeys: batchedState.privateKeys,
-              batchTxFee: batchedState.batchTxFee,
-              batchValue: 0,
-              candidates: [],
-              rawItems: [],
-              payment: {},
-              items: batch,
-              baseWallet: baseWallet
-            };
-            batchState.payment[sourceAddress] = 0;
-            consolidateBatch(batchState)
-              .then(createBatchTransaction)
-              .then(function(results) {
-                console.log(results);
-              })
-              .catch(function(rejection) {
-                console.log(rejection);
+          that.sortByAmount(state)
+            .then(makeBatches)
+            .then(function(batchedState) {
+              var inputBatches = batchedState.inputBatches;
+              inputBatches.forEach(batch => {
+                var batchState = {
+                  sourceAddress: batchedState.sourceAddress,
+                  privateKeys: batchedState.privateKeys,
+                  batchTxFee: batchedState.batchTxFee,
+                  batchValue: 0,
+                  candidates: [],
+                  rawItems: [],
+                  payment: {},
+                  items: batch,
+                  baseWallet: baseWallet
+                };
+                batchState.payment[sourceAddress] = 0;
+                that.consolidateBatch(batchState)
+                  .then(createBatchTransaction)
+                  .then(function(results) {
+                    resolve(results);
+                  })
+                  .catch(function(rejection) {
+                    reject(rejection);
+                  });
               });
-          });
-        });
+            });
+        }
+      });
+    } else {
+      // Being inactive is not an error...
+      resolve("Run configuration is inactive");
     }
   });
-  return worked;
 };
 
+// -------------------------- Exports --------------------------------------------------------
 exports.Duster = Duster;
