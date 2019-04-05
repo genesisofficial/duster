@@ -1,11 +1,10 @@
 {
-  "genx": 
-  {
+  "genx": {
     "paytxfee": 0.01,
     "config": {
-    "port": 56504,
-    "user": "rpcuser",
-    "pass": "rpcpass"
+      "port": 56504,
+      "user": "rpcuser",
+      "pass": "rpcpass"
     }
   }
 }
