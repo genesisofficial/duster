@@ -148,21 +148,22 @@ Duster.prototype.ProcessWalletRun = function(currentRunState) {
     // For now, only process the first wallet... untill I figure out concurrency
     var currentRun = currentRunState.runconfig;
     if (currentRun.active) {
+      var runConfig = currentRun.config;
       // Dumb, but needed
       var that = this;
-      that.baseWallet.listUnspent(minimumConfirmations, function(err, unspent) {
+      that.baseWallet.listUnspent(runConfig.minimum_confirmations, function(err, unspent) {
         if (err) {
           reject(err);
         } else {
           console.log("Total Inputs: " + unspent.length);
           var state = {
             txList: unspent,
-            batchSize: batchSize,
-            sourceAddress: sourceAddress,
-            privateKeys: privateKeys,
-            maximumInputAmount: maximumInputAmount,
-            minimumConfirmations: minimumConfirmations,
-            batchTxFee: batchTxFee
+            batchSize: minimum_confirmations,
+            sourceAddress: runConfig.address,
+            privateKeys: runConfig.private_keys,
+            maximumInputAmount: runConfig.maximum_input_amount,
+            minimumConfirmations: runConfig.minimum_confirmations,
+            batchTxFee: runConfig.batch_tx_fee
           };
 
           that.sortByAmount(state)
@@ -179,7 +180,7 @@ Duster.prototype.ProcessWalletRun = function(currentRunState) {
                   rawItems: [],
                   payment: {},
                   items: batch,
-                  baseWallet: baseWallet
+                  baseWallet: that.baseWallet
                 };
                 batchState.payment[sourceAddress] = 0;
                 that.consolidateBatch(batchState)
