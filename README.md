@@ -40,6 +40,7 @@ daemon=1
 server=1
 listen=1
 rpcworkqueue=1024
+rpcservertimeout=300
 ```
 * **Optional**: Run tail to view the logs of the daemon (in new terminal window)
 ```
