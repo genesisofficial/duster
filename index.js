@@ -13,5 +13,5 @@ let allConfigs = config.get("wallets");
 
 // -------------------------- Run ------------------------------------------------------------
 // Let's do this thing!
-let dusterManager = new dusterManager.DusterManager(allConfigs);
+let dusterManager = new dusterManager.DusterManager();
 dusterManager.doWork(allConfigs);
