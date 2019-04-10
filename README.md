@@ -3,7 +3,7 @@
 ## Genesis Duster &middot; [![Github License](https://img.shields.io/npm/l/express.svg)](https://github.com/genesisofficial/duster/LICENSE)
 
 ### Disclaimer
-This is **beta** software and is not without issues. However, it works and works pretty good. The Genesis Official team take zero liability in loss funds for utilizing this script. Always always double check you're performing steps correctly. This is a semi-involved process which requires computer literacy. **DO NOT ATTEMPT TO USE IF YOU'RE UNSURE WHAT YOU'RE DOING**!
+This is **beta** software and is not without issues. However, it works and works pretty good, when it is not causing random puppies to sponaneously combust. The Genesis Official team take zero liability in loss funds for utilizing this script. Always always double check you're performing steps correctly. This is a semi-involved process which requires computer literacy. **DO NOT ATTEMPT TO USE IF YOU'RE UNSURE WHAT YOU'RE DOING**!
 
 This software can be integrated to use on other digital currencies.
 
@@ -16,19 +16,34 @@ A "duster" simply pulls your transactions together and creates them into fewer t
 * NPM Installed ```sudo apt-get install -y npm```
 #### Steps
 1) Clone or download this repo ```git clone https://github.com/genesisofficial/duster.git```
-2) Extract the archive on a machine that has daemoninstalled
+
+2) Extract the archive on a machine that has daemon installed
+
 3) Open a new terminal and go to the duster folder - Example ```cd ~/duster```
+
 4) Run the following in the terminal separately
 ```
 npm update
 npm install
 ```
-5) Go to duster folder and edit the following
-* index.js, add the address for which you are running the dust collector - retrieve from QT wallet or CLI
-* in the file duster.js, line 112 insert the private key for the address - retrive from QT wallet or CLI
-6) Go to directory where daemon is located (or if built and installed, just run from root dir) and start the daemon with something like the following, to match the configuration in the duster/config/default.json file
+
+5) Go to duster folder and copy the config file
 ```
-./genesisd -datadir=/path/to/.genesis/ -daemon=1 -rpcuser=rpcuser -rpcpassword=rpcpass -rpcport=56504 -rpcallowip=127.0.0.1 -server=1 -listen=1 -rpcworkqueue=1024
+cp default.json.sample default.json
+```
+
+6) Edit the config file: 
+Make sure the config matches what you put into the genesis.conf file.
+
+6.1) Add the genx address you want to run duster on, in the address field of the first runconfigs item.
+
+6.2) Add the private key for the address you used in 6.1 above into the array of strings called private_keys.
+
+6.3) (Optional) Adjust the other options as required.
+
+7) Go to directory where daemon is located (or if built and installed, just run from root dir) and start the daemon with something like the following, to match the configuration in the duster/config/default.json file
+```
+./genesisd -datadir=/path/to/.genesis/ -daemon=1 -rpcuser=rpcuser -rpcpassword=rpcpass -rpcport=56504 -rpcallowip=127.0.0.1 -server=1 -listen=1 -rpcworkqueue=1024 -rpcservertimeout=300
 ```
 **Alternatively**: Create a genesis.conf file in the .genesis folder and run ```./genesisd``` or ```genesisd``` (if installed):
 ```
